@@ -1,8 +1,12 @@
 import type { NextConfig } from "next";
 
+const projectRoot = process.cwd();
+
 const nextConfig: NextConfig = {
-  /* config options here */
   reactCompiler: true,
+  turbopack: {
+    root: projectRoot,
+  },
 };
 
 export default nextConfig;

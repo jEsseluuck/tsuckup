@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useState, useRef, useMemo } from 'react';
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
 
 export default function ReceiptApp() {
   const [formData, setFormData] = useState({
@@ -30,25 +28,114 @@ export default function ReceiptApp() {
     return Math.floor(numericAmount * 0.01);
   }, [formData.amount]);
 
-  const downloadPDF = async () => {
+  const handlePrintPreview = () => {
     const element = receiptRef.current;
     if (!element) return;
 
-    const canvas = await html2canvas(element, {
-      scale: 3, 
-      backgroundColor: '#ffffff',
-      useCORS: true 
-    });
-    const dataUrl = canvas.toDataURL('image/png');
-    
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'px',
-      format: [canvas.width / 3, canvas.height / 3]
-    });
-    
-    pdf.addImage(dataUrl, 'PNG', 0, 0, canvas.width / 3, canvas.height / 3);
-    pdf.save('WU_Receipt.pdf');
+    // Create a new window for print preview
+    const printWindow = window.open('', '', 'height=600,width=800');
+    if (!printWindow) {
+      alert('Please allow pop-ups to open the print preview');
+      return;
+    }
+
+    // Get the HTML content of the receipt
+    const receiptHTML = element.innerHTML;
+
+    // Write the print preview document
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>WU_Receipt - Print Preview</title>
+          <style>
+            body {
+              margin: 20px;
+              font-family: 'Courier New', monospace;
+              background-color: #f5f5f5;
+              padding: 20px;
+            }
+            .print-container {
+              max-width: 400px;
+              margin: 0 auto;
+              background-color: white;
+              padding: 40px;
+              box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            }
+            .button-group {
+              display: flex;
+              gap: 10px;
+              margin-bottom: 20px;
+              justify-content: center;
+            }
+            button {
+              padding: 10px 20px;
+              font-size: 16px;
+              cursor: pointer;
+              border: none;
+              border-radius: 4px;
+              transition: background-color 0.3s;
+            }
+            .print-btn {
+              background-color: #2563eb;
+              color: white;
+            }
+            .print-btn:hover {
+              background-color: #1d4ed8;
+            }
+            .download-btn {
+              background-color: #059669;
+              color: white;
+            }
+            .download-btn:hover {
+              background-color: #047857;
+            }
+            .close-btn {
+              background-color: #6b7280;
+              color: white;
+            }
+            .close-btn:hover {
+              background-color: #4b5563;
+            }
+            @media print {
+              .button-group {
+                display: none;
+              }
+              body {
+                margin: 0;
+                padding: 0;
+                background-color: white;
+              }
+              .print-container {
+                box-shadow: none;
+                margin: 0;
+                padding: 0;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="button-group">
+            <button class="print-btn" onclick="window.print()">🖨️ Print</button>
+            <button class="download-btn" onclick="downloadAsPDF()">⬇️ Download PDF</button>
+            <button class="close-btn" onclick="window.close()">✕ Close</button>
+          </div>
+          <div class="print-container">
+            ${receiptHTML}
+          </div>
+          <script>
+            function downloadAsPDF() {
+              // Fallback: Print to PDF using browser's print dialog
+              const element = document.querySelector('.print-container');
+              if (element) {
+                window.print();
+              }
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   return (
@@ -104,7 +191,7 @@ export default function ReceiptApp() {
           </div>
         </form>
         <button
-          onClick={downloadPDF}
+          onClick={handlePrintPreview}
           className="mt-6 w-full bg-blue-600 text-white font-bold py-3 px-4 rounded hover:bg-blue-700 transition shadow-sm"
         >
           Download PDF

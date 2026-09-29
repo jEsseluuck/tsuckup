@@ -31,24 +31,57 @@ export default function ReceiptApp() {
   }, [formData.amount]);
 
   const downloadPDF = async () => {
-    const element = receiptRef.current;
-    if (!element) return;
+    try {
+      const element = receiptRef.current;
+      if (!element) {
+        console.error('Receipt element not found');
+        return;
+      }
 
-    const canvas = await html2canvas(element, {
-      scale: 3, 
-      backgroundColor: '#ffffff',
-      useCORS: true 
-    });
-    const dataUrl = canvas.toDataURL('image/png');
-    
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'px',
-      format: [canvas.width / 3, canvas.height / 3]
-    });
-    
-    pdf.addImage(dataUrl, 'PNG', 0, 0, canvas.width / 3, canvas.height / 3);
-    pdf.save('WU_Receipt.pdf');
+      // Capture the element as canvas
+      const canvas = await html2canvas(element, {
+        scale: 2, 
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        allowTaint: true,
+        logging: true
+      });
+
+      // Get canvas dimensions
+      const imgWidth = 210; // A4 width in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      // Create PDF
+      const pdf = new jsPDF({
+        orientation: imgHeight > imgWidth ? 'portrait' : 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      const imgData = canvas.toDataURL('image/png');
+      
+      // Add image to PDF, handling multiple pages if needed
+      while (heightLeft >= 0) {
+        pdf.addImage(imgData, 'PNG', 0, position, pageWidth, imgHeight);
+        heightLeft -= pageHeight;
+        position = heightLeft;
+        if (heightLeft > 0) {
+          pdf.addPage();
+        }
+      }
+
+      pdf.save('WU_Receipt.pdf');
+      console.log('PDF downloaded successfully');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Error generating PDF. Please check the browser console for details.');
+    }
   };
 
   return (
